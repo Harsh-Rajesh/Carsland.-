@@ -739,7 +739,7 @@ function art(c){const h=[...c[0]].reduce((a,x)=>(a*31+x.charCodeAt(0))%360,7),f=
 const cr=(i,z)=>`<svg class="cr r${i}c" width="${z}" height="${z}" viewBox="0 0 24 24" aria-label="${R[i].n} crystal"><path d="M6 3h12l5 6-11 13L1 9z" fill="${R[i].c}"/><path d="M6 3l-5 6h11z" fill="#fff5"/><path d="M12 9l6-6 5 6z" fill="#0003"/><path d="M12 9L6 3M12 9l6-6M12 9v13M1 9h22" stroke="#fffb" stroke-width=".8" fill="none"/><path d="M12 9L1 9l11 13z" fill="#0002"/>${i>=4?'<path class="sp" d="M19 5l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="#fff"/>':""}</svg>`;
 let LASTPACK="";
 const packIcon=n=>{const p=PACKS.find(x=>x.n===n);return p?p.e:n==="Bazaar"?"🤝":n==="Admin"?"🛠️":"📦"};
-const foundIn=c=>{if(c[2]>=9)return"Admins only";if(c[2]>=8)return"Impossible to obtain";const p=PACKS.find(x=>x.type===c[3]);return p?p.n:"Street Pack"};
+const foundIn=c=>{if(c[2]>=9)return"Admins only, or buy one in the Bazaar";if(c[2]>=8)return"Impossible to obtain";const p=PACKS.find(x=>x.type===c[3]);return p?p.n:"Street Pack"};
 const tile=(c,cls)=>{const i=C.indexOf(c),src=cls&&cls.indexOf("pop")>=0&&LASTPACK?LASTPACK:(S.own[i]>0?((S.src||{})[i]||"Earlier pack"):null);
  return `<div class="car r${c[2]} ${cls||""}"><span class="cg">${cr(c[2],20)}</span><div class="e">${art(c)}</div><b>${c[0]}</b><small><b class="rn" style="color:${c[2]===0?"#6b7280":R[c[2]].c}">${R[c[2]].n}</b> · ⭐ ${R[c[2]].p} pts</small><br><small class="pk">${src?packIcon(src)+" "+esc(src):"🔍 Found in "+esc(foundIn(c))}</small><br><small class="ty">${c[3]}</small></div>`};
 let QTY=1;
@@ -1258,7 +1258,7 @@ async function bzLoad(){try{const j=await bzReq("GET","");BZ.list=j?Object.value
 function bzNav(){const n=BZ.list.filter(g=>g.sf===S.fid&&g.sold).length,b=document.querySelector("[data-v=bazaar]");if(b)b.textContent="🛒 Bazaar"+(n?" ("+n+")":"")}
 const bzSrc=i=>{S.src=S.src||{};if(!S.src[i]||S.src[i]==="Admin")S.src[i]="Bazaar"};
 const bzWait=ms=>new Promise(r=>setTimeout(r,ms));
-async function bzList(i,price){if(C[i]&&C[i][2]>=9)return"Secret cars can’t be sold in the Bazaar.";if(!(S.own[i]>0)||S.own[i]>9998||S.inf.cars)return"That car can’t be listed.";if(BZ.list.filter(g=>g.sf===S.fid&&!g.sold).length>=8)return"You can have up to 8 cars for sale at once.";
+async function bzList(i,price){if(!(S.own[i]>0)||S.own[i]>9998||S.inf.cars)return"That car can’t be listed.";if(BZ.list.filter(g=>g.sf===S.fid&&!g.sold).length>=8)return"You can have up to 8 cars for sale at once.";
  const id=S.fid+"_"+Date.now().toString(36);try{await bzReq("PUT","/"+id,{id,sf:S.fid,sname:myName(),car:i,price,ts:{".sv":"timestamp"}})}catch(e){return"Couldn’t reach the Bazaar. Your car was not listed."}
  S.own[i]--;if(S.own[i]<=0)delete S.own[i];save();upd();return""}
 async function bzBuy(g){if(g.sf===S.fid)return"That is your own listing.";if(!S.inf.coins&&S.coins<g.price)return"You need 🪙 "+fmtCoins(g.price)+" for that.";
@@ -1271,7 +1271,7 @@ async function bzBuy(g){if(g.sf===S.fid)return"That is your own listing.";if(!S.
   if(!S.inf.coins)S.coins-=g.price;give(g.car,1);bzSrc(g.car);save();upd();return""}catch(e){return"Couldn’t reach the Bazaar. Your coins were not taken."}}
 async function bzCancel(g){try{const cur=await bzReq("GET","/"+g.id);if(!bzOk(cur))return"That listing is already gone.";if(cur.sold)return"It just sold! Collect your coins.";await bzReq("DELETE","/"+g.id);give(g.car,1);bzSrc(g.car);save();upd();return""}catch(e){return"Couldn’t reach the Bazaar. Try again."}}
 async function bzCollect(g){try{const cur=await bzReq("GET","/"+g.id);if(!bzOk(cur)||!cur.sold||cur.sf!==S.fid)return"Nothing to collect.";await bzReq("DELETE","/"+g.id);if(!S.inf.coins)S.coins=Math.min(COIN_MAX,S.coins+cur.price);save();upd();return""}catch(e){return"Couldn’t reach the Bazaar. Try again."}}
-function bazaar(){const own=C.map((c,i)=>[c,i]).filter(([c,i])=>S.own[i]>0&&S.own[i]<=9998&&c[2]<9).sort((a,b)=>b[0][2]-a[0][2]||a[0][0].localeCompare(b[0][0]));
+function bazaar(){const own=C.map((c,i)=>[c,i]).filter(([c,i])=>S.own[i]>0&&S.own[i]<=9998).sort((a,b)=>b[0][2]-a[0][2]||a[0][0].localeCompare(b[0][0]));
  m.innerHTML=`<div class="card"><h2>🛒 Bazaar</h2><p>Buy cars from other players, or sell yours for <b>any price</b>. A car you list is kept safe in the Bazaar until it sells or you take it back. Sold? Open <b>Your listings</b> to collect the coins.</p><div id="bst"></div></div>
  <div class="card" id="bsell"><b>💰 Sell a car</b>${S.inf.cars?"<p><small>Unlimited-cars mode is on, so cars can’t be listed.</small></p>":`<p><select id="bc" style="max-width:100%">${own.map(([c,i])=>`<option value="${i}">${esc(c[0])} · ${R[c[2]].n} (x${S.own[i]}) · suggested 🪙 ${R[c[2]].p*5}</option>`).join("")||"<option value=''>You have no cars to sell</option>"}</select></p><p><input id="bp" type="number" min="1" max="10000000" placeholder="Price in coins" style="width:170px"> <button id="bl" ${own.length?"":"disabled"}>List for sale</button></p>`}</div>
  <div class="card"><div class="row"><b>For sale</b><span><input id="bq" placeholder="Search…" value="${esc(BZ.q)}" style="width:150px"> <select id="bs"><option value="n">Newest</option><option value="a">Price: low to high</option><option value="d">Price: high to low</option><option value="r">Rarest first</option></select></span></div><div id="bg" class="packs"></div></div>
